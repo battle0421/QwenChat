@@ -45,3 +45,24 @@ qwenApi:
   key: sk-5376f7a75c2e4f7ea983443538083204
   baseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
   model: deepseek-v3.2
+
+
+# LangChain4j 配置
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: ${qwenApi.baseUrl}
+      api-key: ${qwenApi.key}
+      model-name: ${qwenApi.model}
+      temperature: 0.7
+      timeout: PT60S
+      max-retries: 3
+      log-requests: true
+      log-responses: true
+    # 如果需要流式输出，可以添加以下配置
+    streaming-chat-model:
+      base-url: ${qwenApi.baseUrl}
+      api-key: ${qwenApi.key}
+      model-name: ${qwenApi.model}
+      temperature: 0.7
+      timeout: PT60S

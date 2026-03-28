@@ -2,6 +2,7 @@ package org.qwen.aiqwen.controller;
 
 import com.alibaba.dashscope.utils.JsonUtils;
 import com.openai.models.chat.completions.ChatCompletion;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.qwen.aiqwen.dto.ChatRequestDto;
 import org.qwen.aiqwen.entity.ChatRecord;
@@ -18,6 +19,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/AI-frist")
 public class QwenChatController {
+    @Autowired
+    private ChatRecordService chatRecordService;
     @Autowired
     public QwenMainService qwenMainService;
     @Autowired
@@ -37,8 +40,13 @@ public class QwenChatController {
         chatRecordService.saveChatRecord(request,responseContent);
         return chatCompletion;
     }
-    @Autowired
-    private ChatRecordService chatRecordService;
+
+    @PostMapping("/helloQwenForLangchain4j")
+    public String openAIQwenChatLangchain4j(@RequestBody List<String> messages) {
+        return qwenMainService.OpenAILangchain4jChat(messages);
+    }
+
+
 
 
 

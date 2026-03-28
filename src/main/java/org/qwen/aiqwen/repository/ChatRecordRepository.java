@@ -15,9 +15,7 @@ import java.util.List;
 @Repository
 public interface ChatRecordRepository extends JpaRepository<ChatRecord, Long> {
 
-    Page<ChatRecord> findByStatus(String status, Pageable pageable);
 
-    List<ChatRecord> findByCreateTimeBetween(LocalDateTime startTime, LocalDateTime endTime);
 
     @Query("SELECT c FROM ChatRecord c WHERE c.message LIKE %:keyword% OR c.response LIKE %:keyword%")
     Page<ChatRecord> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);

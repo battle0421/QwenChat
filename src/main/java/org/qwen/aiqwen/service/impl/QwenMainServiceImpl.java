@@ -4,6 +4,7 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
 import org.qwen.aiqwen.service.QwenMainService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +14,14 @@ import java.util.List;
 
 @Service
 public class QwenMainServiceImpl implements QwenMainService {
+
+    @Autowired
+    private  OpenAiChatModel chatModel;
+
     @Autowired
     public QwenAPIkeyProperties qwenAPIkeyProperties;
+
+
     @Override
     public ChatCompletion OpenAIQwenChat(List<String> messages) {
         ChatCompletion chatCompletion=null;
@@ -39,5 +46,12 @@ public class QwenMainServiceImpl implements QwenMainService {
 
         }
         return chatCompletion;
+    }
+
+
+    @Override
+    public String OpenAILangchain4jChat(List<String> messages) {
+        String userMessage = messages.get(messages.size() - 1);
+        return chatModel.generate(userMessage);
     }
 }

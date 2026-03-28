@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/AI-frist")
@@ -18,7 +20,7 @@ public class QwenChatController {
 
 
     @PostMapping("/helloQwen")
-    public ChatCompletion openAIQwenChatTest(@RequestBody String message){
-      return   qwenMainService.OpenAIQwenChat(message);
+    public ChatCompletion openAIQwenChatTest(@RequestBody List<String> messages){
+      return   qwenMainService.OpenAIQwenChat(messages);
     }
 }

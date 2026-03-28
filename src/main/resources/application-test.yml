@@ -12,4 +12,4 @@ server:
 qwenApi:
   key: sk-5376f7a75c2e4f7ea983443538083204
   baseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
-  model: qwen-plus
+  model: deepseek-v3.2

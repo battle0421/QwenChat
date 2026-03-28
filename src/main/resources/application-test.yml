@@ -1,0 +1,15 @@
+spring:
+  # 应用名称
+  application:
+    name: AI-Qwen
+server:
+  port: 8080
+  servlet:
+    context-path: /AI-Qwen
+  tomcat:
+    uri-encoding: UTF-8
+
+qwenApi:
+  key: sk-5376f7a75c2e4f7ea983443538083204
+  baseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen-plus

@@ -2,7 +2,7 @@ package org.qwen.aiqwen.controller;
 
 import com.openai.models.chat.completions.ChatCompletion;
 import lombok.extern.slf4j.Slf4j;
-import org.qwen.aiqwen.serivce.QwenMainService;
+import org.qwen.aiqwen.service.QwenMainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

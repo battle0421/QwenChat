@@ -1,12 +1,11 @@
-package org.qwen.aiqwen.serivce.impl;
+package org.qwen.aiqwen.service.impl;
 
-import com.alibaba.dashscope.aigc.generation.Generation;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
-import org.qwen.aiqwen.serivce.QwenMainService;
+import org.qwen.aiqwen.service.QwenMainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

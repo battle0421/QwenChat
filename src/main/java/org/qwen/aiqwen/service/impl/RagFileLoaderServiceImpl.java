@@ -15,16 +15,22 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
 import org.apache.poi.ss.formula.functions.T;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.jms.artemis.ArtemisProperties;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
     @Autowired
-    private OpenAiEmbeddingModel embeddingModel;
+    private EmbeddingModel embeddingModel;
+
+    @Autowired
+    private PineconeEmbeddingStore pineconeEmbeddingStore;
 
     private static final int BATCH_SIZE = 10;
     /**
@@ -45,13 +51,11 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         DocumentSplitter lineSplitter = new LlmDocumentSplitter();
         // 3. 分割文件
         List<TextSegment> segments = lineSplitter.split(document);
-//        for (TextSegment segment : segments) {
-//            embeddingModel.embedAll(segments);
-//        }
+
         // 4. 分批处理向量化（每批最多 10 个）
         int totalSegments = segments.size();
         int batches = (totalSegments + BATCH_SIZE - 1) / BATCH_SIZE;
-//        List<Embedding> list = new ArrayList<>();
+        List<Embedding> list = new ArrayList<>();
 
         Response<List<Embedding>> responseList= null;
         for (int i = 0; i < batches; i++) {
@@ -60,9 +64,15 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
             List<TextSegment> batch = segments.subList(start, end);
 
             Response<List<Embedding>> response = embeddingModel.embedAll(batch);
-            responseList.content().addAll(response.content());
+//            embeddingStore.addAll( response.content(), batch);
+            list.addAll(response.content());
         }
-
+// 先生成 IDs 列表
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; i < segments.size(); i++) {
+            ids.add("seg_" + System.currentTimeMillis() + "_" + i);
+        }
+        pineconeEmbeddingStore.addAll( ids,list, segments);
 
 
     }

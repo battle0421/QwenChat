@@ -71,6 +71,11 @@
             <version>1.0.1-beta6</version>
             <scope>compile</scope>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.pinecone</groupId>-->
+<!--            <artifactId>pinecone-client</artifactId>-->
+<!--            <version>5.1.0</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-document-parser-apache-poi</artifactId>
@@ -83,6 +88,20 @@
             <version>0.35.0</version>
         </dependency>
 
+        <!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-pinecone -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-pinecone</artifactId>
+            <version>1.0.0-alpha1</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.25.9</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-test</artifactId>

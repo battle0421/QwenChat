@@ -21,4 +21,15 @@ public class QwenAPIkeyProperties {
 
     @Value("${langchain4j.community.dashscope.embedding-model}")
     private String embeddingModel;
+
+
+    @Value("${pinecone.api-key}")
+    private String pineconeApiKey;
+
+    @Value("${pinecone.environment}")
+    private String pineconeEnvironment;
+
+    @Value("${pinecone.index-name}")
+    private String pineconeEindexName;
+
 }

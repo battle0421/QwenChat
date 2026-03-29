@@ -45,13 +45,44 @@
             <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
             <version>0.35.0</version>
         </dependency>
-
+        <!-- 来源：本地文件 -->
 <!--        <dependency>-->
-<!--            <groupId>org.springframework</groupId>-->
-<!--            <artifactId>spring-web</artifactId>-->
-<!--            <version>7.0.6</version>-->
-<!--            <scope>compile</scope>-->
+<!--            <groupId>dev.langchain4j</groupId>-->
+<!--            <artifactId>langchain4j-document-loader-file-system</artifactId>-->
+<!--            <version>0.35.0</version>-->
 <!--        </dependency>-->
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <!-- 解析：PDF + Office + 全能 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-pdfbox</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <!-- 阿里巴巴百练向量模型依赖（核心，用于文本向量化） -->
+        <!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-community-dashscope -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-dashscope</artifactId>
+            <version>1.0.1-beta6</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-poi</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <!-- 万能解析（PDF/Word/MD/TXT全支持） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-tika</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-test</artifactId>
@@ -105,13 +136,7 @@
                 </includes>
                 <filtering>true</filtering>
             </resource>
-            <resource>
-                <directory>src/main/resources/${prfileActive}</directory>
-                <includes>
-                    <include>**.*</include>
-                </includes>
-                <filtering>true</filtering>
-            </resource>
+
         </resources>
         <plugins>
             <plugin>
@@ -139,7 +164,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>1.7</jvmTarget>
                 </configuration>
             </plugin>
             <plugin>

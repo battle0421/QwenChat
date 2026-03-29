@@ -47,6 +47,7 @@ qwenApi:
   model: deepseek-v3.2
 
 
+
 # LangChain4j 配置
 langchain4j:
   open-ai:
@@ -66,3 +67,8 @@ langchain4j:
       model-name: ${qwenApi.model}
       temperature: 0.7
       timeout: PT60S
+  community:
+    dashscope:
+      embedding-model: text-embedding-v4
+      api-key: ${qwenApi.key}
+      base-url: ${qwenApi.baseUrl}

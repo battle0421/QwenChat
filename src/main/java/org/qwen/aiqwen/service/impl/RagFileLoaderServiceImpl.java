@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-import com.alibaba.dashscope.utils.JsonUtils;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -13,14 +12,14 @@ import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.output.Response;
-import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
-import org.apache.poi.ss.formula.functions.T;
 import org.qwen.aiqwen.service.RagFileLoaderService;
+import org.qwen.aiqwen.util.LlmDocumentSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jms.artemis.ArtemisProperties;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -28,7 +27,8 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
     @Autowired
     private EmbeddingModel embeddingModel;
-
+    @Autowired
+    private OpenAiChatModel chatModel;
     @Autowired
     private PineconeEmbeddingStore pineconeEmbeddingStore;
 
@@ -75,5 +75,40 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         pineconeEmbeddingStore.addAll( ids,list, segments);
 
 
+    }
+
+
+    /**
+     * 查询相似的文本片段
+     * @param query 查询文本
+     * @param maxResults 最大返回结果数
+     * @return 匹配的文本片段列表
+     */
+    public String searchSimilar(String query, int maxResults) {
+        Response<Embedding> queryEmbedding = embeddingModel.embed(query);
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding.content())
+                .maxResults(maxResults)
+                .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
+                .build();
+        List<EmbeddingMatch<TextSegment>> matches = pineconeEmbeddingStore.search(searchRequest).matches();
+
+        // 3. 构建上下文
+        StringBuilder context = new StringBuilder("相关文档信息：\n\n");
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            context.append(match.embedded().text())
+                    .append("\n[相似度：")
+                    .append(String.format("%.2f", match.score() * 100))
+                    .append("%]\n\n");
+        }
+
+        // 4. 构建提示词并调用 LLM
+        String prompt = String.format(
+                "%s\n\n请根据以上信息回答这个问题：%s",
+                context.toString(),
+                query
+        );
+
+        return chatModel.generate(prompt);
     }
 }

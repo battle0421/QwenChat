@@ -1,4 +1,4 @@
-package org.qwen.aiqwen.service.impl;
+package org.qwen.aiqwen.util;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;

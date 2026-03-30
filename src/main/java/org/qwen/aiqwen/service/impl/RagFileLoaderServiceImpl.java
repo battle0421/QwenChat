@@ -16,6 +16,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.qwen.aiqwen.util.LlmDocumentSplitter;
@@ -33,6 +34,26 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     private PineconeEmbeddingStore pineconeEmbeddingStore;
 
     private static final int BATCH_SIZE = 10;
+
+
+
+    /**
+     * 获取文件类型
+     */
+    private String getFileType(String fileName) {
+        if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) {
+            return "WORD";
+        } else if (fileName.endsWith(".pdf")) {
+            return "PDF";
+        } else if (fileName.endsWith(".txt")) {
+            return "TXT";
+        } else if (fileName.endsWith(".md")) {
+            return "MARKDOWN";
+        }
+        return "OTHER";
+    }
+
+
     /**
      * 加载文件接口
      * @param path
@@ -42,6 +63,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
 
         Path filePath = Path.of(path);
+        String fileName = filePath.getFileName().toString();
 
         // 2. 加载并解析文件（使用万能解析器，自动识别文件格式）
         Document document = FileSystemDocumentLoader.loadDocument(
@@ -51,7 +73,12 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         DocumentSplitter lineSplitter = new LlmDocumentSplitter();
         // 3. 分割文件
         List<TextSegment> segments = lineSplitter.split(document);
-
+        // 3. 为每个片段添加元数据（文件名、路径等）
+        for (TextSegment segment : segments) {
+            segment.metadata().put("fileName", fileName);
+            segment.metadata().put("filePath", filePath.toString());
+            segment.metadata().put("fileType", getFileType(fileName));
+        }
         // 4. 分批处理向量化（每批最多 10 个）
         int totalSegments = segments.size();
         int batches = (totalSegments + BATCH_SIZE - 1) / BATCH_SIZE;
@@ -64,10 +91,10 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
             List<TextSegment> batch = segments.subList(start, end);
 
             Response<List<Embedding>> response = embeddingModel.embedAll(batch);
-//            embeddingStore.addAll( response.content(), batch);
+
             list.addAll(response.content());
         }
-// 先生成 IDs 列表
+
         List<String> ids = new ArrayList<>();
         for (int i = 0; i < segments.size(); i++) {
             ids.add("seg_" + System.currentTimeMillis() + "_" + i);
@@ -91,6 +118,9 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 .maxResults(maxResults)
                 .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
                 .build();
+
+
+
         List<EmbeddingMatch<TextSegment>> matches = pineconeEmbeddingStore.search(searchRequest).matches();
 
         // 3. 构建上下文

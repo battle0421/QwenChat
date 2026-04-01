@@ -69,9 +69,10 @@ langchain4j:
       timeout: PT60S
   community:
     dashscope:
-      embedding-model: text-embedding-v4
-      api-key: ${qwenApi.key}
-      base-url: ${qwenApi.baseUrl}
+      modelName: text-embedding-v4
+      apiKey: ${qwenApi.key}
+      baseUrl: ${qwenApi.baseUrl}
+
 pinecone:
   api-key: pcsk_DwF4Z_7Za7jAhaFCyxeWMeKmA3mCoXM9Jp2CmntbmEM6VqN9g7yM8aT6K4kTRkVq4TCDG  # 替换为你Pinecone控制台获取的API Key​
   environment: us-east-1  # 替换为你Pinecone的环境（如gcp-starter、us-west1-gcp）​

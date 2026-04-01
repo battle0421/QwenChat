@@ -4,8 +4,6 @@ package org.qwen.aiqwen.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "chat_records")
 @Data

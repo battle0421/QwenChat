@@ -1,8 +1,6 @@
 package org.qwen.aiqwen.controller;
 
 import com.alibaba.dashscope.utils.JsonUtils;
-import com.openai.models.chat.completions.ChatCompletion;
-import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.qwen.aiqwen.dto.ChatRequestDto;
 import org.qwen.aiqwen.entity.ChatRecord;
@@ -27,17 +25,13 @@ public class QwenChatController {
     public QwenAPIkeyProperties qwenAPIkeyProperties;
 
     @PostMapping("/helloQwen")
-    public ChatCompletion openAIQwenChatTest(@RequestBody List<String> messages){
-        ChatCompletion chatCompletion=  qwenMainService.OpenAIQwenChat(messages);
-        String responseContent = "";
-        if (chatCompletion != null && chatCompletion.choices() != null && !chatCompletion.choices().isEmpty()) {
-            responseContent = String.valueOf(chatCompletion.choices().get(0).message().content());
-        }
+    public String openAIQwenChatTest(@RequestBody String messages){
+        String chatCompletion=  qwenMainService.OpenAIQwenChat(messages);
+
         ChatRequestDto request = new ChatRequestDto();
         request.setMessage(JsonUtils.toJson(messages));
         request.setModel(qwenAPIkeyProperties.getModel());
-//        request.setSystemPrompt(messages.get(0));
-        chatRecordService.saveChatRecord(request,responseContent);
+        chatRecordService.saveChatRecord(request,chatCompletion);
         return chatCompletion;
     }
 

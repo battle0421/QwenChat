@@ -1,10 +1,8 @@
 package org.qwen.aiqwen.config;
 
-import com.openai.models.embeddings.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

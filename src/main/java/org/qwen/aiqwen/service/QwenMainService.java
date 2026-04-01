@@ -1,6 +1,6 @@
 package org.qwen.aiqwen.service;
 
-import com.openai.models.chat.completions.ChatCompletion;
+
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ public interface QwenMainService{
      * @param messages
      * @return
      */
-    public  ChatCompletion OpenAIQwenChat(List<String> messages);
+    public  String OpenAIQwenChat(String messages);
 
     /**
      * langchain4j-open-ai-spring-boot-starter

@@ -1,10 +1,5 @@
 package org.qwen.aiqwen.service.impl;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-
-
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -22,6 +17,10 @@ import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.qwen.aiqwen.util.LlmDocumentSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class RagFileLoaderServiceImpl implements RagFileLoaderService {
@@ -113,8 +112,10 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
      */
     public String searchSimilar(String query, int maxResults) {
         Response<Embedding> queryEmbedding = embeddingModel.embed(query);
+//        Filter fileNameFilter = Filter.(Metadata.FILE_NAME, fileName);
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding.content())
+//                .filter()
                 .maxResults(maxResults)
                 .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
                 .build();
@@ -139,6 +140,6 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 query
         );
 
-        return chatModel.generate(prompt);
+        return chatModel.chat(prompt);
     }
 }

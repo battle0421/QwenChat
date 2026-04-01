@@ -19,7 +19,7 @@ public class QwenAPIkeyProperties {
     @Value("${qwenApi.model}")
     private String model;
 
-    @Value("${langchain4j.community.dashscope.embedding-model}")
+    @Value("${langchain4j.community.dashscope.modelName}")
     private String embeddingModel;
 
 

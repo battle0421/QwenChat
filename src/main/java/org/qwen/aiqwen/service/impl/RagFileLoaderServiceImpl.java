@@ -112,10 +112,12 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
      */
     public String searchSimilar(String query, int maxResults) {
         Response<Embedding> queryEmbedding = embeddingModel.embed(query);
-//        Filter fileNameFilter = Filter.(Metadata.FILE_NAME, fileName);
+        // 2. 构建元数据过滤器
+        dev.langchain4j.store.embedding.filter.Filter metadataFilter = buildMetadataFilter("demo1.txt", null, null);
+
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding.content())
-//                .filter()
+                .filter(metadataFilter)
                 .maxResults(maxResults)
                 .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
                 .build();
@@ -123,7 +125,6 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
 
         List<EmbeddingMatch<TextSegment>> matches = pineconeEmbeddingStore.search(searchRequest).matches();
-
         // 3. 构建上下文
         StringBuilder context = new StringBuilder("相关文档信息：\n\n");
         for (EmbeddingMatch<TextSegment> match : matches) {
@@ -142,4 +143,43 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
         return chatModel.chat(prompt);
     }
+
+    /**
+     * 构建元数据过滤器
+     * @param fileName 文件名
+     * @param fileType 文件类型
+     * @param filePath 文件路径
+     * @return 组合过滤器
+     */
+    private dev.langchain4j.store.embedding.filter.Filter buildMetadataFilter(
+            String fileName, String fileType, String filePath) {
+
+        dev.langchain4j.store.embedding.filter.Filter filter = null;
+
+        // 使用 MetadataFilterBuilder 构建过滤条件
+        if (fileName != null && !fileName.isEmpty()) {
+            filter = dev.langchain4j.store.embedding.filter.MetadataFilterBuilder
+                    .metadataKey("fileName")
+                    .isEqualTo(fileName);
+        }
+
+        if (fileType != null && !fileType.isEmpty()) {
+            dev.langchain4j.store.embedding.filter.Filter typeFilter = dev.langchain4j.store.embedding.filter.MetadataFilterBuilder
+                    .metadataKey("fileType")
+                    .isEqualTo(fileType);
+
+            filter = filter == null ? typeFilter : filter.and(typeFilter);
+        }
+
+        if (filePath != null && !filePath.isEmpty()) {
+            dev.langchain4j.store.embedding.filter.Filter pathFilter = dev.langchain4j.store.embedding.filter.MetadataFilterBuilder
+                    .metadataKey("filePath")
+                    .isEqualTo(filePath);
+
+            filter = filter == null ? pathFilter : filter.and(pathFilter);
+        }
+
+        return filter;  // 如果所有参数都为 null，返回 null 表示不过滤
+    }
+
 }

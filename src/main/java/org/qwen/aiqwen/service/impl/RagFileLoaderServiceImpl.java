@@ -13,11 +13,14 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
+import org.qwen.aiqwen.exception.BusinessException;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.qwen.aiqwen.util.LlmDocumentSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,29 +42,50 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     /**
      * 获取文件类型
      */
-    private String getFileType(String fileName) {
-        if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) {
+    private String getFileType(String path) {
+        if (path.endsWith(".doc") || path.endsWith(".docx")) {
             return "WORD";
-        } else if (fileName.endsWith(".pdf")) {
+        } else if (path.endsWith(".pdf")) {
             return "PDF";
-        } else if (fileName.endsWith(".txt")) {
+        } else if (path.endsWith(".txt")) {
             return "TXT";
-        } else if (fileName.endsWith(".md")) {
+        } else if (path.endsWith(".md")) {
             return "MARKDOWN";
         }
         return "OTHER";
     }
+    @Override
+    public void loadRagFile(String path){
+        Path rootPath = Path.of(path);
 
+        // 判断是文件还是目录
+        if (Files.isRegularFile(rootPath)) {
+            // 单个文件
+            processSingleFile(rootPath);
+        } else if (Files.isDirectory(rootPath)) {
+            // 目录：递归读取所有文件
+            try {
+                Files.walk(rootPath)
+                        .filter(Files::isRegularFile)
+                        .filter(this::isSupportedFileType)
+                        .forEach(this::processSingleFile);
+            } catch (IOException e) {
+                throw new BusinessException("读取目录失败：" + e.getMessage());
+            }
+        } else {
+            throw new BusinessException("路径不存在：" + path);
+        }
+    }
 
     /**
      * 加载文件接口
-     * @param path
+     * @param filePath
      */
-    @Override
-    public void loadRagFile(String path){
+
+    public void processSingleFile(Path filePath){
 
 
-        Path filePath = Path.of(path);
+//        Path filePath = Path.of(path);
         String fileName = filePath.getFileName().toString();
 
         // 2. 加载并解析文件（使用万能解析器，自动识别文件格式）
@@ -102,7 +126,18 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
 
     }
-
+    /**
+     * 判断是否为支持的文件类型
+     */
+    private boolean isSupportedFileType(Path path) {
+        String fileName = path.getFileName().toString().toLowerCase();
+        return fileName.endsWith(".pdf") ||
+                fileName.endsWith(".doc") ||
+                fileName.endsWith(".docx") ||
+                fileName.endsWith(".txt") ||
+                fileName.endsWith(".md") ||
+                fileName.endsWith(".html");
+    }
 
     /**
      * 查询相似的文本片段

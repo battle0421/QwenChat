@@ -158,29 +158,32 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 .queryEmbedding(queryEmbedding.content())
                 .filter(metadataFilter)
                 .maxResults(maxResults)
-                .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
+                .minScore(0.8)  // 只返回相似度 >= 0.7 的结果
                 .build();
 
 
-
+        String prompt="";
         List<EmbeddingMatch<TextSegment>> matches = pineconeEmbeddingStore.search(searchRequest).matches();
-        // 3. 构建上下文
-        StringBuilder context = new StringBuilder("相关文档信息：\n\n");
-        for (EmbeddingMatch<TextSegment> match : matches) {
-            context.append(match.embedded().text()+match.embedded().metadata())
-                    .append("\n[相似度：")
-                    .append(String.format("%.2f", match.score() * 100))
-                    .append("%]\n\n");
-        }
+        if(matches.size()!=0) {
+            // 3. 构建上下文
+            StringBuilder context = new StringBuilder("相关信息：\n\n");
+            for (EmbeddingMatch<TextSegment> match : matches) {
+                context.append(match.embedded().text() + match.embedded().metadata())
+                        .append("\n[相似度：")
+                        .append(String.format("%.2f", match.score() * 100))
+                        .append("%]\n\n");
+            }
 
-        // 4. 构建提示词并调用 LLM
-        String prompt = String.format(
-                "%s\n\n请根据以上信息回答这个问题：%s",
-                context.toString(),
-                query
-        );
+            // 4. 构建提示词并调用 LLM
+             prompt = String.format(
+                    context.toString(),
+                    query
+            );
+        }else {
+             prompt = query;
+        }
         log.info("提示词：{}", prompt);
-        return separateRedisAssistant.chat( memoryId,prompt);
+        return separateRedisAssistant.chat( memoryId,query);
     }
 
     /**

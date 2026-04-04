@@ -57,7 +57,6 @@ public class PersistentRedisChatMemoryStore implements ChatMemoryStore {
                         new TypeReference<List<Map<String, String>>>() {}
                 );
 
-                // 使用自定义方法将 Map 转换为 ChatMessage
                 List<ChatMessage> messages = messageMaps.stream()
                         .map(this::mapToChatMessage)
                         .collect(Collectors.toList());
@@ -160,7 +159,7 @@ public class PersistentRedisChatMemoryStore implements ChatMemoryStore {
 
         if (message instanceof UserMessage) {
             map.put("type", "USER");
-            map.put("content", ((UserMessage) message).toString());
+            map.put("content", ((UserMessage) message).singleText());
         } else if (message instanceof AiMessage) {
             map.put("type", "AI");
             map.put("content", ((AiMessage) message).text());

@@ -32,6 +32,22 @@ spring:
         format_sql: true
     open-in-view: true
 
+
+
+  data:
+    redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    database: 0
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
 # ... existing code ...
 
 server:

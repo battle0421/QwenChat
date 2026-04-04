@@ -148,7 +148,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     public String searchSimilar(String query, int maxResults) {
         Response<Embedding> queryEmbedding = embeddingModel.embed(query);
         // 2. 构建元数据过滤器
-        dev.langchain4j.store.embedding.filter.Filter metadataFilter = buildMetadataFilter("demo1.txt", null, null);
+        dev.langchain4j.store.embedding.filter.Filter metadataFilter = buildMetadataFilter(null, null, null);
 
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding.content())

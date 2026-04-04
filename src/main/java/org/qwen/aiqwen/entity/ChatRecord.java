@@ -26,5 +26,14 @@ public class ChatRecord extends BaseEntity {
     @Column(length = 50)
     private String status;
 
+    @Column(name = "session_id", nullable = false, length = 64)
+    private String sessionId;
+
+    @Column(name = "user_id", nullable = false, length = 64)
+    private String userId;
+
+    @Column(name = "role", nullable = false, length = 16)
+    private String role;
+
 
 }

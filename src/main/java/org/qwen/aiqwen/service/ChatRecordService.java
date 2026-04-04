@@ -16,4 +16,10 @@ public interface ChatRecordService {
     ChatRecord getRecordById(Long id);
 
     void deleteRecord(Long id);
+
+    void saveToRedis(String sessionId, String userId, ChatRecord record);
+
+    List<ChatRecord> getSessionRecords(String sessionId, String userId);
+
+    void deleteSessionRecords(String sessionId, String userId);
 }

@@ -58,7 +58,7 @@
 
     <properties>
         <java.version>17</java.version>
-    <kotlin.version>2.3.10</kotlin.version>
+        <kotlin.version>2.3.10</kotlin.version>
         <langchain4j.version>1.11.0-beta19</langchain4j.version>
     </properties>
     <dependencies>
@@ -126,8 +126,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         <dependency>
-                <groupId>org.apache.commons</groupId>
+            <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -172,7 +176,6 @@
         </dependency>
 
 
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -195,7 +198,7 @@
         <profile>
             <id>test</id>
             <properties>
-             <profileActive>test</profileActive>
+                <profileActive>test</profileActive>
             </properties>
         </profile>
     </profiles>

@@ -27,28 +27,7 @@ public class QwenMainServiceImpl implements QwenMainService {
 
     @Override
     public String OpenAIQwenChat(String messages) {
-//        ChatCompletion chatCompletion=null;
-//        GenerationParam   client = GenerationParam.builder()
-//                    .apiKey(qwenAPIkeyProperties.getApiKey())
-//                    .baseUrl(qwenAPIkeyProperties.getBaseUrl())
-//                    .build();
-//
-//            ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
-//                    .addSystemMessage(messages.get(0))
-//                    .addAssistantMessage(messages.get(1))
-//                    .addUserMessage(messages.get(2))
-//                    .model(qwenAPIkeyProperties.getModel())
-//                    .build();
-//
-//            try {
-//                 chatCompletion = client.chat().completions().create(params);
-//
-//            } catch (Exception e) {
-//                System.err.println("Error occurred: " + e.getMessage());
-//                e.printStackTrace();
-//
-//        }
-//        return chatCompletion;
+
         GenerationResult result = null;
         try {
             Generation gen = new Generation();

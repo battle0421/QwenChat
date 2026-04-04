@@ -19,8 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/chat")
 public class RagQueryController {
-    @Autowired
-    private ChatRecordService chatRecordService;
+
     @Autowired
     public QwenMainService qwenMainService;
     @Autowired

@@ -1,25 +1,30 @@
-
 package org.qwen.aiqwen.filter;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.qwen.aiqwen.dto.ChatRequestDto;
 import org.qwen.aiqwen.entity.ChatRecord;
+import org.qwen.aiqwen.repository.ChatRecordRepository;
 import org.qwen.aiqwen.service.ChatRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Component
 public class ChatRecordInterceptor implements HandlerInterceptor {
-
+    @Autowired
+    private ChatRecordRepository chatRecordRepository;
     @Autowired
     private ChatRecordService chatRecordService;
 
@@ -70,8 +75,7 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
-                                Object handler, Exception ex) {
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         if (!(handler instanceof HandlerMethod)) {
             return;
         }
@@ -89,8 +93,9 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
             String userId = (String) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
 
+            String responseBody = (String) request.getAttribute("cachedResponseBody");
             if (requestBody != null && !requestBody.isEmpty()) {
-                saveChatRecord(requestBody, sessionId, userId, role);
+                saveChatRecord(requestBody, response, sessionId, userId, role);
             }
         } catch (Exception e) {
             log.error("保存聊天记录失败：{}", e.getMessage(), e);
@@ -116,24 +121,127 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
     /**
      * 保存聊天记录
      */
-    private void saveChatRecord(String requestBody, String sessionId, String userId, String role) {
+    private void saveChatRecord(String requestBody, HttpServletResponse response, String sessionId, String userId, String role) {
+
         try {
-            // 尝试解析请求体为 ChatRequestDto
-            ChatRequestDto requestDto = objectMapper.readValue(requestBody, ChatRequestDto.class);
+            // 尝试解析请求体为 Map
+            Map<String, Object> requestMap = objectMapper.readValue(requestBody, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+            });
 
-            // 如果解析成功，使用解析后的数据
-            if (requestDto != null) {
-                requestDto.setSessionId(sessionId);
-                requestDto.setUserId(userId);
-                requestDto.setRole(role);
+            // 构建 ChatRequestDto
+            ChatRequestDto requestDto = new ChatRequestDto();
 
-                // 注意：这里不保存 response，因为响应已经发送了
-                // 可以考虑在 Service 层或通过其他方式获取响应
-                log.info("准备保存聊天记录 - SessionId: {}, Message: {}",
-                        sessionId, requestDto.getMessage());
+            // 从 Map 中提取字段
+            if (requestMap.containsKey("message")) {
+                requestDto.setMessage(requestMap.get("message").toString());
+            } else if (requestMap.containsKey("query")) {
+                // RAG 查询的情况
+                requestDto.setMessage(requestMap.get("query").toString());
             }
+
+            if (requestMap.containsKey("model")) {
+                requestDto.setModel(requestMap.get("model").toString());
+            } else {
+                requestDto.setModel("RAG");
+            }
+
+            if (requestMap.containsKey("systemPrompt")) {
+                requestDto.setSystemPrompt(requestMap.get("systemPrompt").toString());
+            }
+
+            // 设置会话信息
+            requestDto.setSessionId(sessionId);
+            requestDto.setUserId(userId);
+            requestDto.setRole(role);
+            // 解析响应内容
+            String responseContent =extractResponseContent(response);
+
+            // 调用 Service 保存记录（会自动保存到数据库和 Redis）
+            chatRecordService.saveChatRecord(requestDto, responseContent);
+
         } catch (Exception e) {
             log.error("解析请求体失败：{}", e.getMessage());
+        }
+    }
+
+    /**
+     * 169→     * 从 HttpServletResponse 中提取响应内容为 String
+     * 170→     * @param response HTTP 响应对象
+     * 171→     * @return 响应内容字符串
+     * 172→
+     */
+    private String extractResponseContent(HttpServletResponse response) {
+        try {
+            // 如果响应被 ContentCachingResponseWrapper 包装
+            if (response instanceof org.springframework.web.util.ContentCachingResponseWrapper wrappedResponse) {
+                byte[] content = wrappedResponse.getContentAsByteArray();
+                String contentStr = new String(content, StandardCharsets.UTF_8);
+                log.debug("成功从包装的响应中获取内容，长度：{}", contentStr.length());
+                return new String(content, java.nio.charset.StandardCharsets.UTF_8);
+            }
+
+            // 如果是普通的 HttpServletResponse，尝试从缓冲区读取
+            // 注意：这种方式可能无法获取到内容，因为响应可能已经被提交
+            log.warn("响应未被包装，可能无法获取响应内容");
+            return "";
+        } catch (Exception e) {
+            log.error("提取响应内容失败：{}", e.getMessage(), e);
+            return "";
+        }
+    }
+
+    /**
+     * 158→     * 解析响应内容
+     * 159→     * @param responseBody 响应 JSON 字符串
+     * 160→     * @return 解析后的响应内容
+     * 161→
+     */
+    private String parseResponseContent(String responseBody) {
+        if (responseBody == null || responseBody.isEmpty()) {
+            return "";
+        }
+
+        try {
+            // 尝试解析 JSON 响应
+            Map<String, Object> responseMap = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {
+            });
+
+            // 根据不同的响应格式提取内容
+            if (responseMap.containsKey("data")) {
+                Object data = responseMap.get("data");
+                if (data instanceof Map) {
+                    Map<?, ?> dataMap = (Map<?, ?>) data;
+                    if (dataMap.containsKey("content")) {
+                        return dataMap.get("content").toString();
+                    }
+                    if (dataMap.containsKey("text")) {
+                        return dataMap.get("text").toString();
+                    }
+                }
+                return data != null ? data.toString() : "";
+            }
+
+            if (responseMap.containsKey("content")) {
+                return responseMap.get("content").toString();
+            }
+
+            if (responseMap.containsKey("text")) {
+                return responseMap.get("text").toString();
+            }
+
+            if (responseMap.containsKey("message")) {
+                return responseMap.get("message").toString();
+            }
+
+            if (responseMap.containsKey("answer")) {
+                return responseMap.get("answer").toString();
+            }
+
+            // 如果是字符串直接返回
+            return responseBody;
+        } catch (Exception e) {
+            log.warn("解析响应内容失败，使用原始响应：{}", e.getMessage());
+            return responseBody;
         }
     }
 }

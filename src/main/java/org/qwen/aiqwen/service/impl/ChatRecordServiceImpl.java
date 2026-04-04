@@ -1,12 +1,14 @@
-
 package org.qwen.aiqwen.service.impl;
 
+import com.alibaba.dashscope.utils.JsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hibernate.grammars.hql.HqlParser;
 import org.qwen.aiqwen.common.Constants;
 import org.qwen.aiqwen.dto.ChatRequestDto;
 import org.qwen.aiqwen.entity.ChatRecord;
 import org.qwen.aiqwen.exception.BusinessException;
+import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
 import org.qwen.aiqwen.repository.ChatRecordRepository;
 import org.qwen.aiqwen.service.ChatRecordService;
 import org.qwen.aiqwen.vo.ChatResponseVo;
@@ -14,19 +16,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class ChatRecordServiceImpl implements ChatRecordService {
-
+    @Autowired
+    public QwenAPIkeyProperties qwenAPIkeyProperties;
     @Autowired
     private ChatRecordRepository chatRecordRepository;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+ // 日期时间格式化器
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -36,15 +44,37 @@ public class ChatRecordServiceImpl implements ChatRecordService {
         try {
             ChatRecord record = new ChatRecord();
             record.setMessage(request.getMessage());
-            record.setModel(request.getModel() != null ? request.getModel() : Constants.DEFAULT_MODEL);
+            record.setModel(qwenAPIkeyProperties.getModel());
             record.setResponse(response != null ? response : "");
+            record.setSessionId(request.getSessionId());
+            record.setUserId(request.getUserId());
+            record.setRole(request.getRole());
             record.setStatus("success");
-//            record.setCreateTime(LocalDateTime.now());
-
             ChatRecord saved = chatRecordRepository.save(record);
+            saveToRedis(request.getSessionId(), request.getUserId(), saved);
             return ChatResponseVo.success(saved);
         } catch (Exception e) {
             throw new BusinessException("保存聊天记录失败：" + e.getMessage());
+        }
+
+
+    }
+
+    @Override
+    public void saveToRedis(String sessionId, String userId, ChatRecord record) {
+        try {
+            String key = "chat:session:" + userId + ":" + sessionId;
+
+            // 获取现有的会话记录
+            List<ChatRecord> records = getSessionRecords(sessionId, userId);
+            records.add(record);
+
+            // 使用配置好的 ObjectMapper 序列化（支持 LocalDateTime）
+            String json = objectMapper.writeValueAsString(records);
+            redisTemplate.opsForValue().set(key, json, 7, TimeUnit.DAYS);
+
+        } catch (Exception e) {
+            throw new BusinessException("保存到 Redis 失败：" + e.getMessage());
         }
     }
 
@@ -67,22 +97,7 @@ public class ChatRecordServiceImpl implements ChatRecordService {
         chatRecordRepository.deleteById(id);
     }
 
-    @Override
-    public void saveToRedis(String sessionId, String userId, ChatRecord record) {
-        try {
-            String key = "chat:session:" + userId + ":" + sessionId;
 
-            // 获取现有的会话记录
-            List<ChatRecord> records = getSessionRecords(sessionId, userId);
-            records.add(record);
-
-            // 序列化后存储到 Redis
-            String json = objectMapper.writeValueAsString(records);
-            redisTemplate.opsForValue().set(key, json, 7, TimeUnit.DAYS);
-        } catch (Exception e) {
-            throw new BusinessException("保存到 Redis 失败：" + e.getMessage());
-        }
-    }
 
     @Override
     public List<ChatRecord> getSessionRecords(String sessionId, String userId) {

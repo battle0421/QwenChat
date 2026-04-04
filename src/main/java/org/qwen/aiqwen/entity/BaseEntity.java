@@ -14,9 +14,7 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+
 
     @CreationTimestamp
     @Column(name = "create_time", nullable = false, updatable = false)
@@ -26,13 +24,7 @@ public abstract class BaseEntity implements Serializable {
     @Column(name = "update_time", nullable = false)
     private LocalDateTime updateTime;
 
-    public Long getId() {
-        return id;
-    }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public LocalDateTime getCreateTime() {
         return createTime;

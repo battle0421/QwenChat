@@ -14,5 +14,5 @@ public interface RagFileLoaderService {
      * @param maxResults 最大返回结果数
      * @return 匹配的文本片段列表
      */
-    public String searchSimilar(String query, int maxResults);
+    public String searchSimilar(String memoryId ,String query, int maxResults);
 }

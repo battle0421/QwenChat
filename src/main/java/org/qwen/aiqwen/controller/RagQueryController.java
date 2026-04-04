@@ -7,6 +7,7 @@ import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
 import org.qwen.aiqwen.service.ChatRecordService;
 import org.qwen.aiqwen.service.QwenMainService;
 import org.qwen.aiqwen.service.RagFileLoaderService;
+import org.qwen.aiqwen.service.SeparateRedisAssistant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,14 +28,17 @@ public class RagQueryController {
     @Autowired
     private RagFileLoaderService ragFileLoaderService;
 
+
+
     @PostMapping("/query")
     public Result<String> query(@RequestBody Map<String, String> request) {
         String query = request.get("query");
         if (query == null || query.trim().isEmpty()) {
             return Result.error("查询内容不能为空");
         }
+        String memoryId =request.get("memoryId");
         int maxResult = Integer.parseInt(request.get("maxResult"));
-        String answer = ragFileLoaderService.searchSimilar(query, maxResult);
+        String answer = ragFileLoaderService.searchSimilar(memoryId,query, maxResult);
         return Result.success(answer);
     }
 

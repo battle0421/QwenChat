@@ -13,8 +13,10 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
+import lombok.extern.slf4j.Slf4j;
 import org.qwen.aiqwen.exception.BusinessException;
 import org.qwen.aiqwen.service.RagFileLoaderService;
+import org.qwen.aiqwen.service.SeparateRedisAssistant;
 import org.qwen.aiqwen.util.LlmDocumentSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,18 +28,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
     @Autowired
     private EmbeddingModel embeddingModel;
-    @Autowired
-    private OpenAiChatModel chatModel;
+//    @Autowired
+//    private OpenAiChatModel chatModel;
     @Autowired
     private PineconeEmbeddingStore pineconeEmbeddingStore;
 
     private static final int BATCH_SIZE = 10;
 
-
+    @Autowired
+    SeparateRedisAssistant separateRedisAssistant;
 
     /**
      * 获取文件类型
@@ -145,7 +149,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
      * @param maxResults 最大返回结果数
      * @return 匹配的文本片段列表
      */
-    public String searchSimilar(String query, int maxResults) {
+    public String searchSimilar(String memoryId ,String query, int maxResults) {
         Response<Embedding> queryEmbedding = embeddingModel.embed(query);
         // 2. 构建元数据过滤器
         dev.langchain4j.store.embedding.filter.Filter metadataFilter = buildMetadataFilter(null, null, null);
@@ -154,7 +158,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 .queryEmbedding(queryEmbedding.content())
                 .filter(metadataFilter)
                 .maxResults(maxResults)
-                .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
+                .minScore(0.8)  // 只返回相似度 >= 0.7 的结果
                 .build();
 
 
@@ -175,8 +179,8 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 context.toString(),
                 query
         );
-
-        return chatModel.chat(prompt);
+        log.info("提示词：{}", prompt);
+        return separateRedisAssistant.chat( memoryId,prompt);
     }
 
     /**

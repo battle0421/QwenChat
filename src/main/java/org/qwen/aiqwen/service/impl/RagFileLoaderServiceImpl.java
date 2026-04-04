@@ -158,7 +158,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 .queryEmbedding(queryEmbedding.content())
                 .filter(metadataFilter)
                 .maxResults(maxResults)
-                .minScore(0.8)  // 只返回相似度 >= 0.7 的结果
+                .minScore(0.5)  // 只返回相似度 >= 0.7 的结果
                 .build();
 
 
@@ -167,7 +167,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         // 3. 构建上下文
         StringBuilder context = new StringBuilder("相关文档信息：\n\n");
         for (EmbeddingMatch<TextSegment> match : matches) {
-            context.append(match.embedded().text())
+            context.append(match.embedded().text()+match.embedded().metadata())
                     .append("\n[相似度：")
                     .append(String.format("%.2f", match.score() * 100))
                     .append("%]\n\n");

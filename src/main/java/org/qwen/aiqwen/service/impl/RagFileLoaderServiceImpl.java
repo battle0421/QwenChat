@@ -166,21 +166,16 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         List<EmbeddingMatch<TextSegment>> matches = pineconeEmbeddingStore.search(searchRequest).matches();
         if(matches.size()!=0) {
             // 3. 构建上下文
-            StringBuilder context = new StringBuilder("相关信息：\n\n");
+            StringBuilder context = new StringBuilder("用户想知道这些资料：\n\n");
             for (EmbeddingMatch<TextSegment> match : matches) {
-                context.append(match.embedded().text() + match.embedded().metadata())
-                        .append("\n[相似度：")
-                        .append(String.format("%.2f", match.score() * 100))
-                        .append("%]\n\n");
+                context.append(match.embedded().text() + match.embedded().metadata());
             }
 
             // 4. 构建提示词并调用 LLM
-             prompt = String.format(
+            query = String.format(
                     context.toString(),
                     query
             );
-        }else {
-             prompt = query;
         }
         log.info("提示词：{}", prompt);
         return separateRedisAssistant.chat( memoryId,query);

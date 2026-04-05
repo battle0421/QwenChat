@@ -3,6 +3,7 @@ package org.qwen.aiqwen.controller;
 import com.alibaba.dashscope.utils.JsonUtils;
 import org.qwen.aiqwen.common.Result;
 import org.qwen.aiqwen.dto.ChatRequestDto;
+import org.qwen.aiqwen.dto.PersonDto;
 import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
 import org.qwen.aiqwen.service.QwenMainService;
 import org.qwen.aiqwen.service.RagFileLoaderService;
@@ -27,22 +28,23 @@ public class RagQueryController {
     private RagFileLoaderService ragFileLoaderService;
 
 
-
     @PostMapping("/query")
     public Result<String> query(@RequestBody Map<String, String> request) {
         String query = request.get("query");
         if (query == null || query.trim().isEmpty()) {
             return Result.error("查询内容不能为空");
         }
-        String memoryId =request.get("memoryId");
+        String memoryId = request.get("memoryId");
         int maxResult = Integer.parseInt(request.get("maxResult"));
-        String answer = ragFileLoaderService.searchSimilar(memoryId,query, maxResult);
+        String answer = ragFileLoaderService.searchSimilar(memoryId, query, maxResult);
+
+
         return Result.success(answer);
     }
 
     @PostMapping("/helloQwen")
-    public String openAIQwenChatTest(@RequestBody String messages){
-        String chatCompletion=  qwenMainService.OpenAIQwenChat(messages);
+    public String openAIQwenChatTest(@RequestBody String messages) {
+        String chatCompletion = qwenMainService.OpenAIQwenChat(messages);
 
         ChatRequestDto request = new ChatRequestDto();
         request.setMessage(JsonUtils.toJson(messages));
@@ -54,4 +56,25 @@ public class RagQueryController {
     public String openAIQwenChatLangchain4j(@RequestBody List<String> messages) {
         return qwenMainService.OpenAILangchain4jChat(messages);
     }
+
+    /**
+     * 测试接口
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/getperson")
+    public Result<PersonDto> chaForQwen(@RequestBody Map<String, String> request) {
+        String query = request.get("query");
+        if (query == null || query.trim().isEmpty()) {
+            return Result.error("查询内容不能为空");
+        }
+        String memoryId = request.get("memoryId");
+        PersonDto answer = ragFileLoaderService.extractPerson(memoryId, query);
+
+
+        return Result.success(answer);
+    }
+
+
 }

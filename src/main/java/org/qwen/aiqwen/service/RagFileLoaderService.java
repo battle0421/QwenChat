@@ -1,11 +1,18 @@
 package org.qwen.aiqwen.service;
 
+import org.qwen.aiqwen.dto.PersonDto;
+
 public interface RagFileLoaderService {
     /**
      * 加载文件接口
      * @param path
      */
     public void loadRagFile(String path);
+    /**
+     * 提取人名信息
+     *
+     */
+    public PersonDto extractPerson(String memoryId, String message);
 
 
     /**

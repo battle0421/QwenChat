@@ -12,6 +12,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
+import org.qwen.aiqwen.dto.PersonDto;
 import org.qwen.aiqwen.exception.BusinessException;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.qwen.aiqwen.assistant.SeparateRedisAssistant;
@@ -216,5 +217,16 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
         return filter;  // 如果所有参数都为 null，返回 null 表示不过滤
     }
+
+    /**
+     * 从 rag 文件中提取人名
+     * @param message 输入消息
+     * @return 人名
+     */
+    public PersonDto extractPerson(String memoryId, String message) {
+        PersonDto personDto = separateRedisAssistant.extractPerson( memoryId,message);
+        return personDto;
+    }
+
 
 }

@@ -138,6 +138,10 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
                 // RAG 查询的情况
                 requestDto.setMessage(requestMap.get("query").toString());
             }
+            if (requestMap.containsKey("question")) {
+                // RAG 查询的情况
+                requestDto.setMessage(requestMap.get("question").toString());
+            }
 
             if (requestMap.containsKey("model")) {
                 requestDto.setModel(requestMap.get("model").toString());

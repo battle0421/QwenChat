@@ -1,4 +1,4 @@
-package org.qwen.aiqwen.dto;
+package org.qwen.aiqwen.prompt;
 
 import dev.langchain4j.model.output.structured.Description;
 import lombok.Data;

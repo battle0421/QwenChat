@@ -1,6 +1,6 @@
 package org.qwen.aiqwen.service;
 
-import org.qwen.aiqwen.dto.PersonDto;
+import org.qwen.aiqwen.prompt.PersonDto;
 
 public interface RagFileLoaderService {
     /**

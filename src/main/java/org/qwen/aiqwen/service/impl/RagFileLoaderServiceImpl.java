@@ -12,7 +12,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
-import org.qwen.aiqwen.dto.PersonDto;
+import org.qwen.aiqwen.prompt.PersonDto;
 import org.qwen.aiqwen.exception.BusinessException;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.qwen.aiqwen.assistant.SeparateRedisAssistant;

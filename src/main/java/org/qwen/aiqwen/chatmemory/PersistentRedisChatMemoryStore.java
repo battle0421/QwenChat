@@ -1,4 +1,4 @@
-package org.qwen.aiqwen.repository.chatmemory;
+package org.qwen.aiqwen.chatmemory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

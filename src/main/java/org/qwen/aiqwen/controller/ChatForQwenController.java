@@ -1,12 +1,14 @@
 package org.qwen.aiqwen.controller;
 
 import com.alibaba.dashscope.utils.JsonUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.qwen.aiqwen.assistant.LegalAdvisorAssistant;
 import org.qwen.aiqwen.common.Result;
 import org.qwen.aiqwen.dto.ChatRequestDto;
 import org.qwen.aiqwen.prompt.LegalAdvisorPrompt;
 import org.qwen.aiqwen.prompt.PersonDto;
 import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
+import org.qwen.aiqwen.router.SkillRouter;
 import org.qwen.aiqwen.service.QwenMainService;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
+@Slf4j
 public class ChatForQwenController {
     @Autowired
     public QwenMainService qwenMainService;
@@ -28,8 +31,10 @@ public class ChatForQwenController {
     @Autowired
     private RagFileLoaderService ragFileLoaderService;
     @Autowired
-    private
-    LegalAdvisorAssistant assistant;
+    private LegalAdvisorAssistant assistant;
+
+    @Autowired
+    private SkillRouter skillRouter;
 
     @PostMapping("/helloQwen")
     public String openAIQwenChatTest(@RequestBody String messages) {
@@ -108,6 +113,34 @@ public class ChatForQwenController {
 
 
         return answer;
+    }
+
+
+    /**
+     * 智能聊天接口（带意图识别和技能路由）
+     */
+    @PostMapping("/send")
+    public Result<Object> sendMessage(@RequestBody Map<String, String> request) {
+        try {
+            String memoryId = request.get("memoryId");
+            String userInput = request.get("message");
+
+            if (memoryId == null || memoryId.trim().isEmpty()) {
+                return Result.error("会话 ID 不能为空");
+            }
+
+            if (userInput == null || userInput.trim().isEmpty()) {
+                return Result.error("消息内容不能为空");
+            }
+
+            log.info("收到消息 - SessionId: {}, Message: {}", memoryId, userInput);
+
+            return skillRouter.route(memoryId, userInput);
+
+        } catch (Exception e) {
+            log.error("处理消息失败", e);
+            return Result.error("处理消息失败：" + e.getMessage());
+        }
     }
 
 }

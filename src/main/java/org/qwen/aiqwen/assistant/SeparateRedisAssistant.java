@@ -19,4 +19,6 @@ public interface SeparateRedisAssistant {
 
     @UserMessage("给出结果,好的或者不好的 {{it}}")
     Boolean isGoodOrBad( String message);
+
+
 }

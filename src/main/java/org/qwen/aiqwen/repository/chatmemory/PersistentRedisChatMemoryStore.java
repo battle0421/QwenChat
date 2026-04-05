@@ -163,7 +163,10 @@ public class PersistentRedisChatMemoryStore implements ChatMemoryStore {
         } else if (message instanceof AiMessage) {
             map.put("type", "AI");
             map.put("content", ((AiMessage) message).text());
-        } else {
+        }  else if (message instanceof dev.langchain4j.data.message.SystemMessage) {
+            map.put("type", "SYSTEM");
+            map.put("content", ((dev.langchain4j.data.message.SystemMessage) message).text());
+        }else {
             map.put("type", "UNKNOWN");
             map.put("content", message.toString());
         }
@@ -182,6 +185,8 @@ public class PersistentRedisChatMemoryStore implements ChatMemoryStore {
             return new UserMessage(content);
         } else if ("AI".equals(type)) {
             return new AiMessage(content);
+        }  else if ("SYSTEM".equals(type)) {
+            return new dev.langchain4j.data.message.SystemMessage(content != null ? content : "");
         } else {
             log.warn("未知的消息类型: {}", type);
             return new UserMessage(content);

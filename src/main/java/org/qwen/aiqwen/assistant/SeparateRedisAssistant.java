@@ -1,4 +1,4 @@
-package org.qwen.aiqwen.service;
+package org.qwen.aiqwen.assistant;
 
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;

@@ -22,4 +22,11 @@ public interface RagFileLoaderService {
      * @return 匹配的文本片段列表
      */
     public String searchSimilar(String memoryId ,String query, int maxResults);
+
+    /**
+     * 判断是否为好的消息
+     * @param message 输入消息
+     * @return 是否为好的消息
+     */
+    public Boolean isGoodFlag(String message);
 }

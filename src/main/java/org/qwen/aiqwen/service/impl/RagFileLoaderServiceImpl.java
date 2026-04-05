@@ -229,4 +229,15 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     }
 
 
+    /**
+     * 判断是否为好的消息
+     * @param message 输入消息
+     * @return 是否为好的消息
+     */
+    public Boolean isGoodFlag(String message) {
+        Boolean flag = separateRedisAssistant.isGoodOrBad(message);
+        return flag;
+    }
+
+
 }

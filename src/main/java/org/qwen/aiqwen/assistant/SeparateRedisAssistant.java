@@ -16,4 +16,7 @@ public interface SeparateRedisAssistant {
 
     @UserMessage("extract information about a person from {{message}}")
     PersonDto extractPerson(@MemoryId String memoryId, @V("message") String message);
+
+    @UserMessage("给出结果,好的或者不好的 {{it}}")
+    Boolean isGoodOrBad( String message);
 }

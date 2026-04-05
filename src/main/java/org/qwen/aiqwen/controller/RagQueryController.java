@@ -77,4 +77,23 @@ public class RagQueryController {
     }
 
 
+    /**
+     * 测试接口
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/isGoodFlag")
+    public Result<Boolean> isGoodFlag(@RequestBody Map<String, String> request) {
+        String query = request.get("query");
+        if (query == null || query.trim().isEmpty()) {
+            return Result.error("查询内容不能为空");
+        }
+        Boolean answer = ragFileLoaderService.isGoodFlag(query);
+
+
+        return Result.success(answer);
+    }
+
+
 }

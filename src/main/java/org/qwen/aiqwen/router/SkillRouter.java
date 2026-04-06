@@ -1,5 +1,6 @@
 package org.qwen.aiqwen.router;
 
+import lombok.extern.slf4j.Slf4j;
 import org.qwen.aiqwen.assistant.IntentionAssistant;
 import org.qwen.aiqwen.assistant.SeparateRedisAssistant;
 import org.qwen.aiqwen.common.IntentType;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class SkillRouter {
 
@@ -32,13 +34,14 @@ public class SkillRouter {
 
     public Result<Object> route(String memoryId, String userInput) {
         String intentDefinitions = IntentType.getAllDescriptions();
+        log.info("意图定义：{}", intentDefinitions);
         // 大模型返回统一结构 IntentResult
-        IntentResultAiDto intent = llm.intention(memoryId,userInput,intentDefinitions);
+        IntentResultAiDto intent = llm.intention(intentDefinitions,userInput);
 
 
-        ParentSkill skill = skillMap.get(intent.getIntent());
+        ParentSkill skill = skillMap.get(intent.getIntentDefinitions());
         if (skill != null) {
-            return skill.execute(memoryId, intent);
+            return skill.execute( intent);
         } else {
             return Result.success(separateRedisAssistant.chat(memoryId, userInput));
         }

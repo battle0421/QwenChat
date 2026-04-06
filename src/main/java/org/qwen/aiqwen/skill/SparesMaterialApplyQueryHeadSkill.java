@@ -15,7 +15,7 @@ public class SparesMaterialApplyQueryHeadSkill implements ParentSkill{
     }
 
     @Override
-    public Result<Object> execute(String memoryId, IntentResultAiDto intent) {
+    public Result<Object> execute( IntentResultAiDto intent) {
         log.info("查询成功：{}", intent);
         return Result.success("查询成功");
     }

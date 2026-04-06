@@ -9,7 +9,7 @@ public enum IntentType {
     DELETE_SPARES_MATERIAL("delete_sparesMaterialApplyHead", "物料申请单删除"),
     QUERY_SPARES_MATERIAL("query_sparesMaterialApplyHead", "物料申请单查询"),
     QUERY_MATERIAL_INFO("query_material_info", "文件资料查找"),
-    OTHER("other", "其他");
+    OTHER("other", "其他非业务相关对话");
 
     private final String code;
     private final String description;
@@ -19,14 +19,25 @@ public enum IntentType {
         this.description = description;
     }
 
+    /**
+     * 获取所有意图定义的文本描述（优化格式，适合大模型理解）
+     */
     public static String getAllDescriptions() {
-        StringBuilder sb = new StringBuilder("意图类型：\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append("请从以下意图代码中选择一个最匹配的：\n\n");
+
         for (IntentType type : values()) {
-            sb.append(type.getCode()).append(": ").append(type.getDescription()).append("\n");
+            sb.append("【").append(type.getCode()).append("】").append(type.getDescription()).append("\n");
         }
+
+        sb.append("\n注意：只返回意图代码本身（如 add_sparesMaterialApplyHead），不要返回中文描述。");
+
         return sb.toString();
     }
 
+    /**
+     * 根据代码获取枚举
+     */
     public static IntentType fromCode(String code) {
         for (IntentType type : values()) {
             if (type.getCode().equals(code)) {

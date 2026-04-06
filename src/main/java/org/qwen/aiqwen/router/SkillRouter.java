@@ -41,7 +41,7 @@ public class SkillRouter {
 
         ParentSkill skill = skillMap.get(intent.getIntentDefinitions());
         if (skill != null) {
-            return skill.execute( intent);
+            return skill.execute( memoryId, intent);
         } else {
             return Result.success(separateRedisAssistant.chat(memoryId, userInput));
         }

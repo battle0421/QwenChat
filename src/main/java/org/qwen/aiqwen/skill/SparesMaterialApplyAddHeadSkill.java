@@ -31,7 +31,7 @@ public class SparesMaterialApplyAddHeadSkill implements ParentSkill{
      * @return
      */
     @Override
-    public Result<Object> execute(IntentResultAiDto intent) {
+    public Result<Object> execute(String memoryId,IntentResultAiDto intent) {
         log.info("保存成功：{}", intent);
         // 直接从 slots 取！
         String itemName = intent.getString("itemName");

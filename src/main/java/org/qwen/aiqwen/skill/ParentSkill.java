@@ -8,5 +8,5 @@ public interface  ParentSkill {
     String supportIntent();
 
     // 执行技能逻辑
-    Result<Object> execute( IntentResultAiDto intent);
+    Result<Object> execute( String memoryId,IntentResultAiDto intent);
 }

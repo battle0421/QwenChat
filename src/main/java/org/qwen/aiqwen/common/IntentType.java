@@ -8,7 +8,7 @@ public enum IntentType {
     ADD_SPARES_MATERIAL("add_sparesMaterialApplyHead", "物料申请单新增"),
     DELETE_SPARES_MATERIAL("delete_sparesMaterialApplyHead", "物料申请单删除"),
     QUERY_SPARES_MATERIAL("query_sparesMaterialApplyHead", "物料申请单查询"),
-    QUERY_MATERIAL_INFO("query_material_info", "文件资料查找"),
+    QUERY_MATERIAL_INFO("query_document_info", "文件资料查找"),
     OTHER("other", "其他非业务相关对话");
 
     private final String code;

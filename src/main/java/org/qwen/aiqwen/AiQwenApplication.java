@@ -16,4 +16,6 @@ public class AiQwenApplication {
         SpringApplication.run(AiQwenApplication.class, args);
     }
 
+
+
 }

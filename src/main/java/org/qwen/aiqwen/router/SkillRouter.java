@@ -34,15 +34,16 @@ public class SkillRouter {
 
     public Result<Object> route(String memoryId, String userInput) {
         String intentDefinitions = IntentType.getAllDescriptions();
-        log.info("意图定义：{}", intentDefinitions);
         // 大模型返回统一结构 IntentResult
         IntentResultAiDto intent = llm.intention(intentDefinitions,userInput);
 
-
+        log.info("意图识别结果======>：{}", intent.getIntentDefinitions());
         ParentSkill skill = skillMap.get(intent.getIntentDefinitions());
         if (skill != null) {
+            // 调用技能
             return skill.execute( memoryId, intent);
         } else {
+            // 没有匹配的技能，则调用大模型,存聊天
             return Result.success(separateRedisAssistant.chat(memoryId, userInput));
         }
     }

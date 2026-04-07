@@ -1,9 +1,9 @@
 
-package org.qwen.aiqwen.vo;
+package org.qwen.aiqwen.dto;
 
 import java.io.Serializable;
 
-public class ChatResponseVo implements Serializable {
+public class ChatResponseDto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -15,20 +15,20 @@ public class ChatResponseVo implements Serializable {
 
     private Long timestamp;
 
-    public ChatResponseVo() {
+    public ChatResponseDto() {
         this.timestamp = System.currentTimeMillis();
     }
 
-    public static ChatResponseVo success(Object data) {
-        ChatResponseVo vo = new ChatResponseVo();
+    public static ChatResponseDto success(Object data) {
+        ChatResponseDto vo = new ChatResponseDto();
         vo.setCode("200");
         vo.setMessage("success");
         vo.setData(data);
         return vo;
     }
 
-    public static ChatResponseVo error(String message) {
-        ChatResponseVo vo = new ChatResponseVo();
+    public static ChatResponseDto error(String message) {
+        ChatResponseDto vo = new ChatResponseDto();
         vo.setCode("500");
         vo.setMessage(message);
         return vo;

@@ -6,12 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hibernate.grammars.hql.HqlParser;
 import org.qwen.aiqwen.common.Constants;
 import org.qwen.aiqwen.dto.ChatRequestDto;
+import org.qwen.aiqwen.dto.ChatResponseDto;
 import org.qwen.aiqwen.entity.ChatRecord;
 import org.qwen.aiqwen.exception.BusinessException;
 import org.qwen.aiqwen.properties.QwenAPIkeyProperties;
 import org.qwen.aiqwen.repository.ChatRecordRepository;
 import org.qwen.aiqwen.service.ChatRecordService;
-import org.qwen.aiqwen.vo.ChatResponseVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -40,7 +40,7 @@ public class ChatRecordServiceImpl implements ChatRecordService {
     private ObjectMapper objectMapper;
 
     @Override
-    public ChatResponseVo saveChatRecord(ChatRequestDto request, String response) {
+    public ChatResponseDto saveChatRecord(ChatRequestDto request, String response) {
         try {
             ChatRecord record = new ChatRecord();
             record.setMessage(request.getMessage());
@@ -52,7 +52,7 @@ public class ChatRecordServiceImpl implements ChatRecordService {
             record.setStatus("success");
             ChatRecord saved = chatRecordRepository.save(record);
             saveToRedis(request.getSessionId(), request.getUserId(), saved);
-            return ChatResponseVo.success(saved);
+            return ChatResponseDto.success(saved);
         } catch (Exception e) {
             throw new BusinessException("保存聊天记录失败：" + e.getMessage());
         }

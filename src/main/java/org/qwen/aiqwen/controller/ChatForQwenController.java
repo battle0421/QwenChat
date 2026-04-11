@@ -135,17 +135,6 @@ public class ChatForQwenController {
     public Result<Object> sendMessage(@RequestBody Map<String, String> request) {
         String memoryId = request.get("memoryId");
         String userInput = request.get("message");
-        //String query = intent.getUserInput();
-        try {
-            // 1. 从 Redis 拿状态
-            UserSessionState state = getState(memoryId);
-            // 判断是否为纯数字
-            if (userInput.matches("\\d+")) {
-
-                if (state != null && state.getCurrentState() == ChatState.WAIT_USER_CHOOSE_DOC) {
-                    return Result.success(chooseDoc(memoryId, userInput, state));
-                }
-            }
 
 
 
@@ -163,37 +152,9 @@ public class ChatForQwenController {
 
             return skillRouter.route(memoryId, userInput);
 
-        } catch (Exception e) {
-            log.error("处理消息失败", e);
-            return Result.error("处理消息失败：" + e.getMessage());
-        }
-    }
 
-    // ====================== 状态机核心：用户选第几个 ======================
-    private String chooseDoc(String sessionId, String userInput, UserSessionState state) {
-        Integer idx = NumberUtil.extract(userInput);
-        List<MeetingDoc> docs = state.getDocList();
-
-        if (idx == null || idx < 1 || idx > docs.size()) {
-            return "请输入有效序号：1~" + docs.size();
-        }
-
-        // 选完清状态
-        clearState(sessionId);
-
-        MeetingDoc doc = docs.get(idx - 1);
-        return "已为你打开第" + idx + "条：\n" + doc.getFileName() + "\n\n" + doc.getContent();
     }
 
 
-    private UserSessionState getState(String sessionId) throws Exception {
-        Object json = redisTemplate.opsForValue().get(KEY_PREFIX + sessionId);
-        if (json == null) return null;
-        return objectMapper.readValue(json.toString(), UserSessionState.class);
-    }
-
-    private void clearState(String sessionId) {
-        redisTemplate.delete(KEY_PREFIX + sessionId);
-    }
 
 }

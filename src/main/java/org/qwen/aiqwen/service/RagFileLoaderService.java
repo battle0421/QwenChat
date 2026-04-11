@@ -14,7 +14,11 @@ public interface RagFileLoaderService {
      */
     public PersonDto extractPerson(String memoryId, String message);
 
-
+    /**
+     * 加载文件接口
+     * @param path
+     */
+    public void loadRagWordFile(String path);
     /**
      * 搜索相似的文本片段
      * @param query 查询文本

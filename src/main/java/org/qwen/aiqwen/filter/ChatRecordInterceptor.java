@@ -33,19 +33,19 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        // 只处理方法类型的请求
         if (!(handler instanceof HandlerMethod)) {
             return true;
         }
 
-        // 检查是否需要记录聊天（可以通过注解或路径判断）
         HandlerMethod handlerMethod = (HandlerMethod) handler;
         Method method = handlerMethod.getMethod();
 
-        // 这里可以根据注解或方法名判断是否需要记录
-        // 暂时对所有 POST 请求进行记录
+        String requestURI = request.getRequestURI();
+        if (requestURI != null && requestURI.contains("/send/stream")) {
+            log.debug("流式接口，跳过拦截器处理: {}", requestURI);
+            return true;
+        }
 
-        // 生成或获取会话信息
         String sessionId = request.getHeader("X-Session-ID");
         String userId = request.getHeader("X-User-ID");
         String role = request.getHeader("X-Role");
@@ -63,7 +63,6 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
             role = "user";
         }
 
-        // 将会话信息设置到 request attribute 中
         request.setAttribute("sessionId", sessionId);
         request.setAttribute("userId", userId);
         request.setAttribute("role", role);
@@ -80,14 +79,18 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
             return;
         }
 
-        // 只在请求成功后保存记录
+        String requestURI = request.getRequestURI();
+        if (requestURI != null && requestURI.contains("/send/stream")) {
+            log.debug("流式接口，跳过聊天记录保存: {}", requestURI);
+            return;
+        }
+
         if (ex != null || response.getStatus() >= 400) {
             log.warn("请求失败或异常，不保存聊天记录");
             return;
         }
 
         try {
-            // 从 request 中获取请求体内容
             String requestBody = (String) request.getAttribute("requestBody");
             String sessionId = (String) request.getAttribute("sessionId");
             String userId = (String) request.getAttribute("userId");
@@ -95,12 +98,14 @@ public class ChatRecordInterceptor implements HandlerInterceptor {
 
             String responseBody = (String) request.getAttribute("cachedResponseBody");
             if (requestBody != null && !requestBody.isEmpty()) {
-                saveChatRecord(requestBody, response, sessionId, userId, role);
+//                saveChatRecord(requestBody, response, sessionId, userId, role);
             }
         } catch (Exception e) {
             log.error("保存聊天记录失败：{}", e.getMessage(), e);
         }
     }
+
+// ... existing code ...
 
     /**
      * 读取请求体

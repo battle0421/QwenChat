@@ -217,6 +217,9 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 context.append(";").append("回答用户提的问题:" + query + ";不需要你组织语言,把用资料信息直接给到");
 
             }
+            if(context.isEmpty()){
+                return "请说明你要查询文档的具体信息,例如:文档名,会议纪要相关信息等";
+            }
             log.info("提示词：{}", context);
             return separateRedisAssistant.chat(memoryId, context.toString());
         } catch (Exception e) {

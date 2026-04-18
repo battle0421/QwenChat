@@ -17,7 +17,7 @@ public class RagDocController {
     @RequestMapping("/loadRagFile")
     public String loadRagFile(@RequestBody   String path){
         log.info("加载文件：{}", path);
-        ragFileLoaderService.loadRagWordFile(path);
+        ragFileLoaderService.loadRagFile(path);
         return "加载成功";
     }
 

@@ -21,6 +21,7 @@ import org.qwen.aiqwen.exception.BusinessException;
 import org.qwen.aiqwen.prompt.PersonDto;
 import org.qwen.aiqwen.service.RagFileLoaderService;
 import org.qwen.aiqwen.util.LlmDocumentSplitter;
+import org.qwen.aiqwen.util.SmartTokenizer;
 import org.qwen.aiqwen.util.SmartWordDocumentSplitter;
 import org.qwen.aiqwen.util.WordDocumentProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -44,8 +46,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     @Autowired
     private PineconeEmbeddingStore pineconeEmbeddingStore;
 
-    @Autowired
-    private SparseVectorService sparseVectorService;
+
 
     private static final int BATCH_SIZE = 10;
 
@@ -63,9 +64,20 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     private static final String KEY_PREFIX = "chat:state:";
     private static final long EXPIRE_MIN = 5;
 
-    // 混合检索权重配置
     private static final double DENSE_WEIGHT = 0.5;
     private static final double SPARSE_WEIGHT = 0.5;
+
+
+    private final Object buildLock = new Object();
+
+    private static final String BM25_INDEX_KEY = "rag:bm25:index";
+    private static final String BM25_DOC_FREQ_KEY = "rag:bm25:docfreq";
+    private static final String BM25_DOC_STORE_KEY = "rag:bm25:docstore";
+    private static final String BM25_TOTAL_COUNT_KEY = "rag:bm25:totalcount";
+
+    @Autowired
+    private SmartTokenizer smartTokenizer;
+// ... existing code ...
 
     @Override
     public void loadRagFile(String path) {
@@ -107,6 +119,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
 
         List<TextSegment> segments = splitter.split(document);
 
+
         for (TextSegment segment : segments) {
             segment.metadata().put("fileName", fileName);
             segment.metadata().put("filePath", filePath.toString());
@@ -116,8 +129,7 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         int totalSegments = segments.size();
         int batches = (totalSegments + BATCH_SIZE - 1) / BATCH_SIZE;
         List<Embedding> denseEmbeddings = new ArrayList<>();
-        List<Map<String, Float>> sparseVectors = new ArrayList<>();
-        List<String> texts = new ArrayList<>();
+
 
         for (int i = 0; i < batches; i++) {
             int start = i * BATCH_SIZE;
@@ -127,23 +139,62 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
             Response<List<Embedding>> response = embeddingModel.embedAll(batch);
             denseEmbeddings.addAll(response.content());
 
-            for (TextSegment segment : batch) {
-                texts.add(segment.text());
-                sparseVectors.add(sparseVectorService.generateSparseVector(segment.text()));
-            }
         }
 
-        sparseVectorService.updateIdf(texts);
 
         List<String> ids = new ArrayList<>();
         for (int i = 0; i < segments.size(); i++) {
-            ids.add("seg_" + System.currentTimeMillis() + "_" + i);
+            String docId = "seg_" + System.currentTimeMillis() + "_" + i;
+            ids.add(docId);
+            // ✅ 关键修改：入库时同步构建 BM25 索引
+            buildAndStoreBM25Index(docId, segments.get(i));
         }
 
         pineconeEmbeddingStore.addAll(ids, denseEmbeddings, segments);
 
+
+
         log.info("文件处理完成: {}, 片段数: {}", fileName, segments.size());
     }
+
+
+    /**
+     * 构建并存储 BM25 索引到 Redis
+     */
+    private void buildAndStoreBM25Index(String docId, TextSegment segment) {
+        try {
+            String[] tokens = tokenize(segment.text());
+            Map<String, Integer> termFreqMap = new HashMap<>();
+
+            for (String token : tokens) {
+                termFreqMap.put(token, termFreqMap.getOrDefault(token, 0) + 1);
+            }
+
+            String termFreqJson = objectMapper.writeValueAsString(termFreqMap);
+            redisTemplate.opsForHash().put(BM25_INDEX_KEY, docId, termFreqJson);
+
+            Map<String, String> segmentData = new HashMap<>();
+            segmentData.put("text", segment.text());
+            segmentData.put("fileName", segment.metadata().getString("fileName"));
+            segmentData.put("filePath", segment.metadata().getString("filePath"));
+            segmentData.put("fileType", segment.metadata().getString("fileType"));
+
+            String segmentJson = objectMapper.writeValueAsString(segmentData);
+            redisTemplate.opsForHash().put(BM25_DOC_STORE_KEY, docId, segmentJson);
+
+            Set<String> uniqueTerms = termFreqMap.keySet();
+            for (String term : uniqueTerms) {
+                redisTemplate.opsForHash().increment(BM25_DOC_FREQ_KEY, term, 1);
+            }
+
+            redisTemplate.opsForValue().increment(BM25_TOTAL_COUNT_KEY);
+
+            log.debug("BM25 索引构建成功, docId: {}, 词数: {}", docId, termFreqMap.size());
+        } catch (Exception e) {
+            log.error("构建 BM25 索引失败, docId: {}", docId, e);
+        }
+    }
+// ... existing code ...
 
 
     private String getFileType(String path) {
@@ -170,14 +221,15 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
     }
 
     /**
-     * 混合检索：结合密集向量和稀疏向量（BM25）
+     * 混合检索：多路召回（密集向量 + BM25全文检索）
      */
     public String searchSimilar(String memoryId, String query, int maxResults) {
         try {
-            log.info("开始混合检索，查询: {}", query);
+            log.info("开始多路召回检索，查询: {}", query);
+
+
 
             Response<Embedding> queryEmbedding = embeddingModel.embed(query);
-
             String[] queryTokens = tokenize(query);
 
             dev.langchain4j.store.embedding.filter.Filter metadataFilter = buildMetadataFilter(null, null, null);
@@ -186,17 +238,17 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                     .queryEmbedding(queryEmbedding.content())
                     .filter(metadataFilter)
                     .maxResults(maxResults * 2)
-                    .minScore(0.5)
+                    .minScore(0.3)
                     .build();
 
             List<EmbeddingMatch<TextSegment>> denseMatches = pineconeEmbeddingStore.search(denseSearchRequest).matches();
-            log.info("密集向量检索结果数: {}", denseMatches.size());
+            log.info("第一路-密集向量检索结果数: {}", denseMatches.size());
 
-            List<Map<String, Object>> sparseMatches = bm25HybridSearch(queryTokens, denseMatches, maxResults * 2);
-            log.info("稀疏向量(BM25)检索结果数: {}", sparseMatches.size());
+            List<Map<String, Object>> sparseMatches = bm25FullTextSearch(queryTokens, maxResults * 2);
+            log.info("第二路-BM25全文检索结果数: {}", sparseMatches.size());
 
             List<HybridResult> hybridResults = mergeResults(denseMatches, sparseMatches, maxResults);
-            log.info("混合检索合并后结果数: {}", hybridResults.size());
+            log.info("多路召回融合后结果数: {}", hybridResults.size());
 
             if (hybridResults.isEmpty()) {
                 return "未找到相关文档，请尝试使用更具体的关键词或更换查询内容。";
@@ -215,15 +267,6 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 }
             }
 
-//            if (docList.size() > 1) {
-//                UserSessionState userSessionState = new UserSessionState();
-//                userSessionState.setCurrentState(ChatState.WAIT_USER_CHOOSE_DOC);
-//                userSessionState.setDocList(docList);
-//                saveState(memoryId, userSessionState);
-//
-//                return "找到 " + docList.size() + " 份相关文档，请选择第几份：" + docname;
-//            }
-
             StringBuilder context = new StringBuilder("根据以下资料信息回答用户问题:\n\n");
             for (int i = 0; i < hybridResults.size(); i++) {
                 HybridResult result = hybridResults.get(i);
@@ -235,17 +278,14 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
             log.info("最终提示词长度: {}", context.length());
             return separateRedisAssistant.chat(memoryId, context.toString());
         } catch (Exception e) {
-            log.error("混合检索异常", e);
+            log.error("多路召回检索异常", e);
             return "系统异常，请稍后重试。详细错误: " + e.getMessage();
         }
     }
-
     /**
-     * BM25 稀疏向量检索
+     * BM25 全文检索 - 基于 Redis 中存储的倒排索引进行检索（不依赖向量）
      */
-    private List<Map<String, Object>> bm25HybridSearch(String[] queryTokens,
-                                                       List<EmbeddingMatch<TextSegment>> denseMatches,
-                                                       int maxResults) {
+    private List<Map<String, Object>> bm25FullTextSearch(String[] queryTokens, int maxResults) {
         List<Map<String, Object>> results = new ArrayList<>();
 
         if (queryTokens == null || queryTokens.length == 0) {
@@ -253,46 +293,100 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
         }
 
         try {
-            Map<String, Integer> docFreq = new HashMap<>();
-            int totalDocs = denseMatches.size();
+            Object totalCountObj = redisTemplate.opsForValue().get(BM25_TOTAL_COUNT_KEY);
+            if (totalCountObj == null) {
+                log.warn("BM25 索引为空，请先加载文档");
+                return results;
+            }
 
-            for (EmbeddingMatch<TextSegment> match : denseMatches) {
-                TextSegment segment = match.embedded();
-                String[] docTokens = tokenize(segment.text());
-                Set<String> uniqueTokens = new HashSet<>(Arrays.asList(docTokens));
-
-                for (String token : uniqueTokens) {
-                    docFreq.put(token, docFreq.getOrDefault(token, 0) + 1);
-                }
+            int totalDocs = ((Number) totalCountObj).intValue();
+            if (totalDocs == 0) {
+                log.warn("BM25 索引中文档数量为0");
+                return results;
             }
 
             double k1Param = 1.5;
             double bParam = 0.75;
+            double avgDocLength = calculateAvgDocLengthFromRedis();
 
-            for (EmbeddingMatch<TextSegment> match : denseMatches) {
-                TextSegment segment = match.embedded();
-                String[] docTokens = tokenize(segment.text());
-                int docLength = docTokens.length;
-                double avgDocLength = totalDocs > 0 ?
-                        denseMatches.stream().mapToLong(m -> m.embedded().text().split("\\s+").length).average().orElse(100) : 100;
+            Map<String, Double> bm25Scores = new HashMap<>();
 
-                double bm25Score = 0.0;
-                for (String queryToken : queryTokens) {
-                    int termFreq = (int) Arrays.stream(docTokens).filter(t -> t.equals(queryToken)).count();
-                    int df = docFreq.getOrDefault(queryToken, 0);
+            for (String queryToken : queryTokens) {
+                Object dfObj = redisTemplate.opsForHash().get(BM25_DOC_FREQ_KEY, queryToken);
+                int df = dfObj != null ? ((Number) dfObj).intValue() : 0;
 
-                    double idf = Math.log((totalDocs - df + 0.5) / (df + 0.5) + 1.0);
-                    double tfWeight = termFreq * (k1Param + 1) / (termFreq + k1Param * (1 - bParam + bParam * docLength / avgDocLength));
-
-                    bm25Score += idf * tfWeight;
+                if (df == 0) {
+                    log.debug("查询词 '{}' 在索引中不存在", queryToken);
+                    continue;
                 }
 
-                if (bm25Score > 0.5) {
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("segment", segment);
-                    result.put("score", (float) bm25Score);
-                    result.put("id", match.embeddingId());
-                    results.add(result);
+                double idf = Math.log((totalDocs - df + 0.5) / (df + 0.5) + 1.0);
+
+                Map<Object, Object> allDocs = redisTemplate.opsForHash().entries(BM25_INDEX_KEY);
+
+                for (Map.Entry<Object, Object> entry : allDocs.entrySet()) {
+                    String docId = (String) entry.getKey();
+                    String termFreqJson = (String) entry.getValue();
+
+                    try {
+                        Map<String, Integer> termFreqMap = objectMapper.readValue(
+                                termFreqJson,
+                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {}
+                        );
+
+                        Integer termFreq = termFreqMap.get(queryToken);
+                        if (termFreq == null || termFreq == 0) {
+                            continue;
+                        }
+
+                        int docLength = termFreqMap.values().stream().mapToInt(Integer::intValue).sum();
+
+                        double tfWeight = termFreq * (k1Param + 1) /
+                                (termFreq + k1Param * (1 - bParam + bParam * docLength / avgDocLength));
+
+                        double score = idf * tfWeight;
+                        bm25Scores.merge(docId, score, Double::sum);
+
+                    } catch (Exception e) {
+                        log.warn("解析文档词频失败, docId: {}", docId, e);
+                    }
+                }
+            }
+
+            for (Map.Entry<String, Double> entry : bm25Scores.entrySet()) {
+                String docId = entry.getKey();
+                double score = entry.getValue();
+
+                if (score > 0) {
+                    Object segmentJson = redisTemplate.opsForHash().get(BM25_DOC_STORE_KEY, docId);
+                    if (segmentJson != null) {
+                        try {
+                            Map<String, String> segmentData = objectMapper.readValue(
+                                    (String) segmentJson,
+                                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {}
+                            );
+
+                            dev.langchain4j.data.document.Metadata metadata =
+                                    dev.langchain4j.data.document.Metadata.from(Map.of(
+                                            "fileName", segmentData.get("fileName"),
+                                            "filePath", segmentData.get("filePath"),
+                                            "fileType", segmentData.get("fileType")
+                                    ));
+
+                            TextSegment segment = TextSegment.from(
+                                    segmentData.get("text"),
+                                    metadata
+                            );
+
+                            Map<String, Object> result = new HashMap<>();
+                            result.put("segment", segment);
+                            result.put("score", (float) score);
+                            result.put("id", docId);
+                            results.add(result);
+                        } catch (Exception e) {
+                            log.warn("还原文档片段失败, docId: {}", docId, e);
+                        }
+                    }
                 }
             }
 
@@ -305,21 +399,59 @@ public class RagFileLoaderServiceImpl implements RagFileLoaderService {
                 results = results.subList(0, maxResults);
             }
 
-            log.info("BM25 检索完成，返回 {} 个结果", results.size());
+            log.info("BM25 全文检索完成，查询词数: {}, 总文档数: {}, 匹配结果数: {}",
+                    queryTokens.length, totalDocs, results.size());
         } catch (Exception e) {
-            log.warn("BM25 检索失败: {}", e.getMessage());
+            log.error("BM25 全文检索失败", e);
         }
 
         return results;
     }
 
     /**
-     * 分词工具
+     * 从 Redis 计算平均文档长度
+     */
+    private double calculateAvgDocLengthFromRedis() {
+        try {
+            Map<Object, Object> allDocs = redisTemplate.opsForHash().entries(BM25_INDEX_KEY);
+            if (allDocs.isEmpty()) {
+                return 100;
+            }
+
+            double totalLength = 0;
+            int count = 0;
+
+            for (Object termFreqJson : allDocs.values()) {
+                try {
+                    Map<String, Integer> termFreqMap = objectMapper.readValue(
+                            (String) termFreqJson,
+                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {}
+                    );
+                    totalLength += termFreqMap.values().stream().mapToInt(Integer::intValue).sum();
+                    count++;
+                } catch (Exception e) {
+                    log.warn("计算文档长度失败", e);
+                }
+            }
+
+            return count > 0 ? totalLength / count : 100;
+        } catch (Exception e) {
+            log.error("计算平均文档长度失败", e);
+            return 100;
+        }
+    }
+
+// ... existing code ...
+
+
+
+
+
+    /**
+     * 智能分词工具 - 保护专业术语，支持中英文混合
      */
     private String[] tokenize(String text) {
-        return text.toLowerCase()
-                .replaceAll("[^\\p{L}\\p{N}\\s]", " ")
-                .split("\\s+");
+        return smartTokenizer.tokenize(text);
     }
 
 
